@@ -4,12 +4,6 @@
 require 'csv'
 require 'pry'
 
-def duration( departure, arrival )
-  departure_hour, departure_minute = departure.split(':')
-  arrival_hour, arrival_minute = arrival.split(':')
-  60.0 * (arrival_hour.to_i - departure_hour.to_i) + arrival_minute.to_i - departure_minute.to_i
-end
-
 def to_time( strg )
   hour, minute = strg.split(':')
   Time.new(2015,7,2,hour.to_i,minute.to_i)
@@ -19,12 +13,12 @@ end
 def least_cost( all_flights )
   # keep a list of lowest cost routes (destination only, no intermediate stops)
   # loop through the available flights
-  # add routes where they are better on cost or arrival time (so ties can be broken)
+  # replace route where better on cost or same on cost and better on arrival time
 
   # seed route
   routes = { 'A' => [[nil, to_time('23:59'), 0.0]] }  # { terminus => [[departed, arrived, totalcost] , [departed, arrived, totalcost], ...]
 
-  # endless loop
+  # endless loop through the flights until no changes are made to the routes
   until false
     puts "START LOOP"
     # loop through the flights
@@ -40,7 +34,7 @@ def least_cost( all_flights )
         departed, arrived, cost = *route_from_origin
         # add a route with this leg?
         if routes[destination].nil?
-          routes[destination] = [[departed||departure, arrival, cost+price]]
+          routes[destination] = [[departed || departure, arrival, cost+price]]
           routes_added = true
           puts "ADD route: #{destination} => #{routes[destination].inspect}"
         else
@@ -52,15 +46,10 @@ def least_cost( all_flights )
               # replace the route
               puts "Rmv route: #{destination} => #{route_to_destination.inspect}"
               routes[destination].delete(route_to_destination)
-              routes[destination] << [departed||departure, arrival, cost+price]
+              routes[destination] << [departed || departure, arrival, cost+price]
               routes_added = true
               puts "Add route: #{destination} => #{routes[destination].inspect}"
               break
-            # if it's higher cost but arrives earlier
-            #elsif arrival < route_arrival || cost+price < route_cost
-            #  # add the route
-            #  routes[destination] << [departed, arrival, cost+price]
-            #  break
             end
           end
         end
@@ -71,7 +60,7 @@ def least_cost( all_flights )
 
   puts '============'
   routes.each_pair do |destination, route|
-    puts "Route: #{destination} => #{route.inspect}"
+    puts "Route: #{destination} => #{route.inspect}"   WHY IS COST A FLOAT HERE?
   end
 end
 
@@ -99,8 +88,10 @@ CSV.foreach(ARGV[0]) do |row|
     nflights = strg.to_i
     #puts "nflights: #{nflights}"
   else
-    origin, destination, departure, arrival, price = strg.split(' ')
-    flights << [origin, destination, to_time(departure), to_time(arrival), price.to_f]
+    origin, destination, departure, arrival, currency = strg.split(' ')
+    price = currency.split('.')
+    cents = 100 * price[0].to_i + price[1].to_i
+    flights << [origin, destination, to_time(departure), to_time(arrival), cents]
     nflights -= 1
   end
 
