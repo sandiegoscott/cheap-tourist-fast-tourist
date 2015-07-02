@@ -12,7 +12,7 @@ end
 
 def to_time( strg )
   hour, minute = strg.split(':')
-  Time.new(2010,10,31,hour.to_i,minute.to_i)
+  Time.new(2015,7,2,hour.to_i,minute.to_i)
 end
 
 # least cost algorithm
@@ -20,33 +20,59 @@ def least_cost( all_flights )
   # keep a list of lowest cost routes (destination only, no intermediate stops)
   # loop through the available flights
   # add routes where they are better on cost or arrival time (so ties can be broken)
-  routes = { 'A' => [[nil, nil, 0.0]] }  # { terminus => [[departed, arrived, totalcost] , [departed, arrived, totalcost], ...]
-  #until true
+
+  # seed route
+  routes = { 'A' => [[nil, to_time('23:59'), 0.0]] }  # { terminus => [[departed, arrived, totalcost] , [departed, arrived, totalcost], ...]
+
+  # endless loop
+  until false
+    puts "START LOOP"
     # loop through the flights
+    routes_added = false
     all_flights.each do |flight|
+      #puts "flight=#{flight.inspect} routes.size=#{routes.size}"
       origin, destination, departure, arrival, price = *flight
-      # check for routes to add this to
-      # for each of these routes--
+      # check for routes to add the flight to
+      # if there are no routes that end at the origin, move on
+      next if routes[origin].nil?
+      # for each of the routes from the origin--
       routes[origin].each do |route_from_origin|
         departed, arrived, cost = *route_from_origin
         # add a route with this leg?
         if routes[destination].nil?
           routes[destination] = [[departed||departure, arrival, cost+price]]
-          puts "Added route: #{destination} => #{routes[destination].inspect}"
+          routes_added = true
+          puts "ADD route: #{destination} => #{routes[destination].inspect}"
         else
-          # this route must beat at least one of the existing routes to be added
+          # compare this route to the destination with others we have
           routes[destination].each do |route_to_destination|
             route_departure, route_arrival, route_cost = *route_to_destination
-            # add it if it arrives sooner or costs less
-            if arrival < route_arrival || cost+price < route_cost
-              routes[destination] << [departed, arrival, cost+price]
+            # if it's lower cost or same cost and earlier
+            if (cost + price < route_cost) || (cost + price == route_cost && arrival < route_arrival)
+              # replace the route
+              puts "Rmv route: #{destination} => #{route_to_destination.inspect}"
+              routes[destination].delete(route_to_destination)
+              routes[destination] << [departed||departure, arrival, cost+price]
+              routes_added = true
+              puts "Add route: #{destination} => #{routes[destination].inspect}"
               break
+            # if it's higher cost but arrives earlier
+            #elsif arrival < route_arrival || cost+price < route_cost
+            #  # add the route
+            #  routes[destination] << [departed, arrival, cost+price]
+            #  break
             end
           end
         end
       end
     end
-  #end
+    break if !routes_added
+  end
+
+  puts '============'
+  routes.each_pair do |destination, route|
+    puts "Route: #{destination} => #{route.inspect}"
+  end
 end
 
 # initialize
