@@ -4,124 +4,37 @@
 require 'csv'
 require 'pry'
 
-def to_time( strg )
-  hour, minute = strg.split(':')
-  Time.new(2015,7,2,hour.to_i,minute.to_i)
-end
-
-def from_time( time )
-  time.strftime("%H:%M")
-end
-
-def show_flight( flight )
-  "#{flight[0]} #{flight[1]} #{from_time(flight[2])} #{from_time(flight[3])} #{sprintf('%.2f', 0.01*flight[4])}"
-end
-
-def show_route( destination, route )
-  route_departure, route_arrival, route_cost, route_duration = *route
-  route_departure ||= Time.now
-  "#{destination}: #{from_time(route_departure)} #{from_time(route_arrival)} #{sprintf('%.2f', 0.01*route_cost)} #{route_duration}"
-end
-
-def show_routes( routes )
-  puts '============'
-  routes.each_pair do |destination, routes|
-    routes.each do |route|
-      puts "Route: #{show_route(destination, route)}"
-    end
+class String
+  def to_time
+    hour, minute = self.split(':')
+    now = Time.now
+    Time.new(now.year, now.month, now.day, hour.to_i, minute.to_i)
   end
 end
 
+class Flight
+  include Comparable
+  attr :arrival
 
-# least cost algorithm
-def least_cost( all_flights, show_flag )
-  # keep a list of lowest cost routes (destination only, no intermediate stops)
-  # loop through the available flights
-  # replace route where better on cost or same on cost and better on arrival time
-
-  # seed route
-  routes = { 'A' => [[nil, to_time('23:59'), 0, 0]] }  # { terminus => [[route_departure, route_arrival, totalcost] , [route_departure, route_arrival, totalcost], ...]
-
-  # endless loop through the flights until no changes are made to the routes
-  puts "NEW CASE" if show_flag
-  until false
-    puts "START LOOP" if show_flag
-    # loop through the flights
-    routes_added = false
-    all_flights.each do |flight|
-      #puts "flight=#{show_flight(flight)} routes.size=#{routes.size}" if show_flag
-      flight_origin, flight_destination, flight_departure, flight_arrival, flight_price = *flight
-      # check for routes to add the flight to
-      # if there are no routes that end at the flight origin, move on
-      next if routes[flight_origin].nil?
-      # for each of the routes to the origin of the flight--
-      routes[flight_origin].each do |route_to_flight_origin|
-        route_departure, route_arrival, route_cost, route_duration = *route_to_flight_origin
-        # compute a new route combining the existing route and the flight
-        new_destination = flight_destination
-        new_departure = route_departure || flight_departure  # seed route has nil route_departure field
-        new_arrival = flight_arrival
-        new_cost = route_cost + flight_price
-        new_duration = flight_arrival - new_departure
-        new_route = [new_departure, new_arrival, new_cost, new_duration]
-        # if there are no routes yet to the new route destination--
-        if routes[new_destination].nil?
-          # add the new route
-          routes[new_destination] = [new_route]
-          #binding.pry
-          routes_added = true
-          puts "ADD route: #{show_route(new_destination, new_route)}" if show_flag
-        # --otherwise--
-        else
-          # first make sure this route is not already present
-          if routes[new_destination].include? new_route
-            puts "PRESENT!"
-            next
-          end
-          # compare this route with existing routes to the flight destination
-          do_not_add_route = false
-          routes[flight_destination].each do |alt_route_to_new_destination|
-            alt_route_departure, alt_route_arrival, alt_route_cost, alt_route_duration = *alt_route_to_new_destination
-            # if the new route both arrives no earlier and costs no less then an existing route, it's not better, toss it out
-            do_not_add_route = true
-            next if new_arrival >= alt_route_arrival && new_cost >= alt_route_cost
-            do_not_add_route = false
-          end
-          unless do_not_add_route
-            # compare the route to be added to alternate routes
-            routes[flight_destination].each do |alt_route_to_new_destination|
-              alt_route_departure, alt_route_arrival, alt_route_cost, alt_route_duration = *alt_route_to_new_destination
-              # if the new route is not equal to the alternate route--
-              if new_arrival != alt_route_arrival && new_cost != alt_route_cost
-                # --and if the new route arrives no later and costs no more, then remove the alternate route
-                if new_arrival <= alt_route_arrival && new_cost <= alt_route_cost
-                  routes[flight_destination].delete(alt_route_to_new_destination)
-                  puts "RMV route: #{show_route(flight_destination, alt_route_to_new_destination)}" if show_flag
-                end
-              end
-            end
-            # add the new route
-            routes[new_destination] << [new_departure, new_arrival, new_cost, new_duration]
-            routes_added = true
-            puts "Add route: #{show_route(new_destination, [new_departure, new_arrival, new_cost, new_duration])}" if show_flag
-          end
-        end
-      end
-    end
-    show_routes(routes) if show_flag
-    break if !routes_added
+  def <=>(another_flight)
+    arrival <=> another_flight.arrival
   end
 
-  if show_flag
+  def initialize(flight_params)
+    # flight info
+    @origin, @destination, departs, arrives, currency = flight_params.split
+    @departure = departs.to_time
+    @arrival = arrives.to_time
+    price = currency.split('.')
+    @price = 100 * price[0].to_i + price[1].to_i
+
+    # route info
+    @cost = nil
+    @start_time = nil
   end
 
-  if routes.keys.include?('Z')
-    #puts routes['Z'].inspect
-    puts from_time(routes['Z'][0][0]) + ' ' + from_time(routes['Z'][0][1]) + ' ' + sprintf("%.2f", 0.01*routes['Z'][0][2])
-    puts
-  else
-    puts "You can't get from A to Z!"
-    puts
+  def inspect
+    "#{@origin} #{@destination} #{@departure.strftime("%H:%M")} #{@arrival.strftime("%H:%M")} #{sprintf('%.2f', 0.01*@price)}"
   end
 end
 
@@ -129,48 +42,28 @@ end
 # =============== main program ===============
 #
 
-# initialize
-ncases = nil
-nflights = 0
-flights = [ ]
+# open the file
+file = File.new(ARGV[0], "r")
 
-show_flag = !ARGV[1].nil?
+# number of cases
+line = file.gets
+ncases = line.chomp.to_i
 
-# read the file
-CSV.foreach(ARGV[0]) do |row|
-  # skip blank lines
-  next if row.empty?
-  strg = row[0]
-  #puts "row: #{row}"
-
-  # first row
-  unless ncases
-    ncases = strg.to_i
-    next
+while true
+  # next case
+  line = file.gets
+  break if line.nil?
+  next if line.chomp.empty?
+  nflights = line.chomp.to_i
+  flights = [ ]
+  (1..nflights).each do
+    line = file.gets.chomp
+    flights << Flight.new(line)
   end
-
-  # acquire the data
-  if nflights == 0
-    # # of flights
-    nflights = strg.to_i
-    #puts "nflights: #{nflights}"
-  else
-    origin, destination, departure, arrival, currency = strg.split(' ')
-    price = currency.split('.')
-    cents = 100 * price[0].to_i + price[1].to_i
-    flights << [origin, destination, to_time(departure), to_time(arrival), cents]
-    nflights -= 1
-  end
-
-  # solve case
-  if nflights == 0
-    least_cost(flights, show_flag)
-    data = [ ]
-  end
-
+  flights.each { |flight| puts flight.inspect }
 end
 
-
+file.close
 
 
 
