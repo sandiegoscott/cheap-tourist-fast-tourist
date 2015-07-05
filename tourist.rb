@@ -67,7 +67,7 @@ class FlightQueue
   end
 
   def inspect
-    strg = "FLIGHT QUEUE: "
+    strg = "FLIGHT QUEUE:"
     @flights.each {|flight| strg << " #{flight.origin}->#{flight.destination}"}
     strg
   end
@@ -79,10 +79,10 @@ class BestFlights
   end
 
   def add( flight )
-    puts "ADD     #{flight.inspect}"
+    puts "ADDHEAP #{flight.inspect}"
     flights = @heap[flight.destination]
     if flights
-      flights.select!{ |in_flight| inflight.info != flight.info }  # remove this flight if present
+      flights.select!{ |in_flight| in_flight.info != flight.info }  # remove this flight if present
       flights << flight
     else
       flights = [flight]
@@ -95,15 +95,21 @@ class BestFlights
   end
 
   def inspect
-
+    'HEAP: ' + @heap.keys.map{|dest| dest + ': ' + @heap[dest].map{|flt| flt.inspect}.join('/')}.join('|')
   end
 end
 
-def minimize_cost( q, departures )
+def minimize_cost( q, arrivals )
   best_flights = BestFlights.new
 
   # start with a dummy flight in the heap of flights with best costs
   best_flights.add Flight.new('- A 00:00, 00:00, 0.00')
+  arrivals['A'] = 1
+
+  puts q.inspect
+  puts best_flights.inspect
+  puts
+  puts 'START'
 
   # while there are still flights in the queue--
   while q.size > 0
@@ -115,7 +121,6 @@ def minimize_cost( q, departures )
     # if there are no incoming flights to add this flight to, put it at the end of the queue, we'll consider it again
     if in_flights.nil?
       puts "No inflights"
-      binding.pry
       q.enqueue(flight)
       next
     end
@@ -131,13 +136,14 @@ def minimize_cost( q, departures )
     # add this flight to the heap
     best_flights.add(flight)
     # if not all the incoming flights have been considered, put this flight in the queue to be considered again
-    if best_flights.arrivals(flight.origin).size < departures[flight.origin]
+    if best_flights.arrivals(flight.origin).size < arrivals[flight.origin]
       q.enqueue(flight)
     end
     
-    puts "\nEND OF LOOP"
+    puts "END OF LOOP"
     puts q.inspect
     puts best_flights.inspect
+    puts
   end
 end
 
@@ -159,7 +165,7 @@ while true
   next if line.chomp.empty?
   nflights = line.chomp.to_i
   flights = [ ]
-  departures = { }
+  arrivals = { }
 
   # read each flight
   (1..nflights).each do
@@ -167,8 +173,8 @@ while true
     # add to flight queue
     flight = Flight.new(line)
     flights << flight
-    # count departures from each city
-    departures[flight.origin] = departures[flight.origin] ? departures[flight.origin] + 1 : 1
+    # count arrivals into each city
+    arrivals[flight.origin] = arrivals[flight.destination] ? arrivals[flight.destination] + 1 : 1
   end
 
   # queue the flights by arrival time
@@ -177,7 +183,7 @@ while true
   q_time = q_cost.dup
 
   # apply algorithm to minimize cost
-  minimize_cost(q_cost, departures)
+  minimize_cost(q_cost, arrivals)
 end
 
 file.close
