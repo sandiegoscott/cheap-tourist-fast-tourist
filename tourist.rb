@@ -17,7 +17,7 @@ end
 class Flight
   include Comparable
   attr_reader :origin, :destination, :arrival, :departure, :price
-  attr_accessor :cost, :first_departure
+  attr_accessor :cost, :duration, :first_departure
 
   def initialize( flight_params )
     # flight info
@@ -194,13 +194,14 @@ def minimize_time( q, arrivals )
       next
     end
     # find the lowest cost route that includes this flight
-    lowest_cost = 100000000
+    lowest_duration = 100000000.0
     #puts "Inflights to #{flight.origin}: #{in_flights.size}"
     in_flights.each do |in_flight|
-      # if the flights are compatible and together are the lowest cost
-      if in_flight.arrival <= flight.departure && in_flight.cost + flight.price < lowest_cost
+      # if the flights are compatible and together are the lowest duration
+      duration = flight.arrival - in_flight.first_departure
+      if in_flight.arrival <= flight.departure && duration < lowest_duration
         # save that information in the flight
-        flight.cost = lowest_cost = in_flight.cost + flight.price
+        flight.duration = duration
         flight.first_departure = flight.origin == 'A' ? flight.departure : in_flight.first_departure
       end
     end
@@ -217,7 +218,7 @@ def minimize_time( q, arrivals )
   # retrieve best route
   all_routes = best_flights.arrivals('Z')
   puts all_routes.inspect if TRACE
-  best_route = all_routes.min_by { |flight| flight.cost }
+  best_route = all_routes.min_by { |flight| flight.duration }
   puts best_route.solution
   puts
 end
