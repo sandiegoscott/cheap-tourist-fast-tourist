@@ -4,7 +4,7 @@
 require 'csv'
 require 'pry'
 
-TRACE = true
+TRACE = false
 
 class String
   def to_time
