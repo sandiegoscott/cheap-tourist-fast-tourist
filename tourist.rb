@@ -4,6 +4,8 @@
 require 'csv'
 require 'pry'
 
+TRACE = false
+
 class String
   def to_time
     hour, minute = self.split(':')
@@ -58,13 +60,13 @@ class FlightQueue
   
   def dequeue
     flight = @flights.pop
-    #puts "DEQUEUE #{flight.inspect}"
+    puts "DEQUEUE #{flight.inspect}" if TRACE
     flight
   end
   
   def enqueue(flight)
     @flights.unshift(flight)
-    #puts "ENQUEUE #{flight.inspect}"
+    puts "ENQUEUE #{flight.inspect}" if TRACE
     self
   end
   
@@ -85,7 +87,7 @@ class BestFlights
   end
 
   def add( flight )
-    #puts "ADDHEAP #{flight.inspect}"
+    puts "ADDHEAP #{flight.inspect}" if TRACE
     flights = @heap[flight.destination]
     if flights
       flights.select!{ |in_flight| in_flight.info != flight.info }  # remove this flight if present
@@ -106,16 +108,20 @@ class BestFlights
 end
 
 def minimize_cost( q, arrivals )
+  puts if TRACE
+  puts "MINIMIZE TIME START" if TRACE
+
   best_flights = BestFlights.new
 
   # start with a dummy flight in the heap of flights with best costs
   best_flights.add Flight.new('- A 00:00 00:00, 0.00')
   arrivals['A'] = 1
 
-  #puts q.inspect
-  #puts best_flights.inspect
-  #puts
-  #puts 'START'
+  puts q.inspect if TRACE
+  puts best_flights.inspect if TRACE
+  puts arrivals.inspect if TRACE
+  puts if TRACE
+  puts 'START' if TRACE
 
   # while there are still flights in the queue--
   while q.size > 0
@@ -126,7 +132,7 @@ def minimize_cost( q, arrivals )
     in_flights = best_flights.arrivals(flight.origin)
     # if there are no incoming flights to add this flight to, put it at the end of the queue, we'll consider it again
     if in_flights.nil?
-      #puts "No inflights"
+      puts "No inflights" if TRACE
       q.enqueue(flight)
       next
     end
@@ -147,13 +153,70 @@ def minimize_cost( q, arrivals )
     if best_flights.arrivals(flight.origin).size < arrivals[flight.origin]
       q.enqueue(flight)
     else
-      #puts 'Not queued again'
+      puts 'Not queued again' if TRACE
     end
   end
 
   # retrieve best route
   all_routes = best_flights.arrivals('Z')
   #puts all_routes.inspect
+  best_route = all_routes.min_by { |flight| flight.cost }
+  puts best_route.solution
+end
+
+def minimize_time( q, arrivals )
+  puts if TRACE
+  puts "MINIMIZE TIME START" if TRACE
+
+  best_flights = BestFlights.new
+
+  # start with a dummy flight in the heap of flights with best costs
+  best_flights.add Flight.new('- A 00:00 00:00, 0.00')
+  arrivals['A'] = 1
+
+  puts q.inspect if TRACE
+  puts best_flights.inspect if TRACE
+  puts arrivals.inspect if TRACE
+  puts if TRACE
+  puts 'START' if TRACE
+
+  # while there are still flights in the queue--
+  while q.size > 0
+    q.inspect
+    # get the next flight
+    flight = q.dequeue
+    # get the flights into this flight's origin city
+    in_flights = best_flights.arrivals(flight.origin)
+    # if there are no incoming flights to add this flight to, put it at the end of the queue, we'll consider it again
+    if in_flights.nil?
+      puts "No inflights" if TRACE
+      q.enqueue(flight)
+      next
+    end
+    # find the lowest cost route that includes this flight
+    lowest_cost = 100000000
+    #puts "Inflights to #{flight.origin}: #{in_flights.size}"
+    in_flights.each do |in_flight|
+      # if the flights are compatible and together are the lowest cost
+      if in_flight.arrival <= flight.departure && in_flight.cost + flight.price < lowest_cost
+        # save that information in the flight
+        flight.cost = lowest_cost = in_flight.cost + flight.price
+        flight.first_departure = flight.origin == 'A' ? flight.departure : in_flight.first_departure
+      end
+    end
+    # add this flight to the heap
+    best_flights.add(flight)
+    # if not all the incoming flights have been considered, put this flight in the queue to be considered again
+    if best_flights.arrivals(flight.origin).size < arrivals[flight.origin]
+      q.enqueue(flight)
+    else
+      puts 'Not queued again' if TRACE
+    end
+  end
+
+  # retrieve best route
+  all_routes = best_flights.arrivals('Z')
+  puts all_routes.inspect if TRACE
   best_route = all_routes.min_by { |flight| flight.cost }
   puts best_route.solution
   puts
@@ -194,10 +257,12 @@ while true
   # queue the flights by arrival time
   q_cost = FlightQueue.new
   flights.sort.each { |flight| q_cost.enqueue(flight) }
-  q_time = q_cost.dup
+  q_time = FlightQueue.new
+  flights.sort.each { |flight| q_time.enqueue(flight) }
 
   # apply algorithm to minimize cost
   minimize_cost(q_cost, arrivals)
+  minimize_time(q_time, arrivals)
 end
 
 file.close
