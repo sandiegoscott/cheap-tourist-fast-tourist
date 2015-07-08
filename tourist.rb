@@ -109,7 +109,7 @@ end
 
 def minimize_cost( q, arrivals )
   puts if TRACE
-  puts "MINIMIZE TIME START" if TRACE
+  puts "MINIMIZE COST START" if TRACE
 
   best_flights = BestFlights.new
 
@@ -198,11 +198,13 @@ def minimize_time( q, arrivals )
     #puts "Inflights to #{flight.origin}: #{in_flights.size}"
     in_flights.each do |in_flight|
       # if the flights are compatible and together are the lowest duration
-      duration = flight.arrival - in_flight.first_departure
+      first_departure = flight.origin == 'A' ? flight.departure : in_flight.first_departure
+      duration = flight.arrival - first_departure
       if in_flight.arrival <= flight.departure && duration < lowest_duration
         # save that information in the flight
         flight.duration = duration
-        flight.first_departure = flight.origin == 'A' ? flight.departure : in_flight.first_departure
+        flight.first_departure = first_departure
+        flight.cost = in_flight.cost + flight.price
       end
     end
     # add this flight to the heap
