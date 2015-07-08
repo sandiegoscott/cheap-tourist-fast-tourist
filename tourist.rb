@@ -6,6 +6,12 @@ require 'pry'
 
 TRACE = false
 
+class Fixnum
+  def to_currency
+    "#{sprintf("%d", self/100)}.#{(self%100)}"
+  end
+end
+
 class String
   def to_time
     hour, minute = self.split(':')
@@ -17,7 +23,7 @@ end
 class Flight
   include Comparable
   attr_reader :origin, :destination, :arrival, :departure, :price
-  attr_accessor :cost, :duration, :first_departure
+  attr_accessor :cost, :duration, :first_departure, :cities
 
   def initialize( flight_params )
     # flight info
@@ -30,6 +36,7 @@ class Flight
     # info for route ending with this flight
     @cost = 0
     @first_departure = '00:00'.to_time
+    @cities = 'A'  # let's keep track of the cities too
   end
 
   def <=>( another_flight )
@@ -43,13 +50,13 @@ class Flight
   def inspect
     depart = @departure ? @departure.strftime("%H:%M") : ' --- '
     arrive = @arrival ? @arrival.strftime("%H:%M") : ' --- '
-    "#{origin} #{@destination} #{depart} #{arrive} " + sprintf('%.2f', 0.01*@price) + ' ' + sprintf('%7.2f', 0.01*@cost)
+    "#{origin} #{@destination} #{depart} #{arrive} #{@price.to_currency} => #{@cost.to_currency} : #{@cities}"
   end
 
   def solution
     arrive = @arrival.strftime("%H:%M")
     start = @first_departure.strftime("%H:%M")
-    "#{start} #{arrive} " + ' ' + sprintf('%7.2f', 0.01*@cost)
+    "#{start} #{arrive} #{@price.to_currency} => #{@cost.to_currency} : #{@cities}"
   end
 end
 
@@ -117,15 +124,15 @@ def minimize_cost( q, arrivals )
   best_flights.add Flight.new('- A 00:00 00:00, 0.00')
   arrivals['A'] = 1
 
+  # trace start
   puts q.inspect if TRACE
   puts best_flights.inspect if TRACE
-  puts arrivals.inspect if TRACE
+  puts "Arrival counts: " + arrivals.inspect if TRACE
   puts if TRACE
   puts 'START' if TRACE
 
   # while there are still flights in the queue--
   while q.size > 0
-    q.inspect
     # get the next flight
     flight = q.dequeue
     # get the flights into this flight's origin city
@@ -140,11 +147,14 @@ def minimize_cost( q, arrivals )
     lowest_cost = 100000000
     #puts "Inflights to #{flight.origin}: #{in_flights.size}"
     in_flights.each do |in_flight|
+      # skip thin incoming flight if it's not part of a route
+      next if in_flight.cost == 0 && in_flight.origin != '-'
       # if the flights are compatible and together are the lowest cost
       if in_flight.arrival <= flight.departure && in_flight.cost + flight.price < lowest_cost
         # save that information in the flight
         flight.cost = lowest_cost = in_flight.cost + flight.price
         flight.first_departure = flight.origin == 'A' ? flight.departure : in_flight.first_departure
+        flight.cities = in_flight.cities + ' ' + flight.destination
       end
     end
     # add this flight to the heap
@@ -158,7 +168,7 @@ def minimize_cost( q, arrivals )
   end
 
   # retrieve best route
-  all_routes = best_flights.arrivals('Z')
+  all_routes = best_flights.arrivals('Z').select{|route| route.cost > 0.0}
   #puts all_routes.inspect
   best_route = all_routes.min_by { |flight| flight.cost }
   puts best_route.solution
@@ -265,7 +275,7 @@ while true
 
   # apply algorithm to minimize cost
   minimize_cost(q_cost, arrivals)
-  minimize_time(q_time, arrivals)
+  #minimize_time(q_time, arrivals)
 end
 
 file.close
