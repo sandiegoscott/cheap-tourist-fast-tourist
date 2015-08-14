@@ -2,7 +2,7 @@
 # Puzzlenode.com: Cheap tourist, fast tourist
 #
 require 'csv'
-require 'pry'
+#require 'pry'
 
 TRACE = false
 
