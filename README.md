@@ -2,11 +2,22 @@
 
 I wrote this Ruby code in response to a request for a sample of the code I write. I only had proprietary client code at the time, so it was suggested I code one of the problems at [Puzzlenode.com](http://www.puzzlenode.com).
 
-I chose this problem because I thought I could modify a well-know algorithm (Dijkstra's algorithm) for finding the shortest path between nodes in a graph. That turned out not to be the case; this is a hard problem! The algorithm constructs routes from sequences of flights and keeps only the best routes out of each city. Care must be taken to consider all routes; this requires keeping a flight around for consideration until all the incoming routes it might be added to have been computed.
+I chose this problem ([Cheap tourist, fast tourist](http://www.puzzlenode.com/puzzles/2-cheap-tourist-fast-tourist)) because I thought I could modify a well-know algorithm (Dijkstra's algorithm) for finding the shortest path between nodes in a graph. That turned out not to be the case; this is a hard problem!
 
-To run the code against the sample data shown at [Puzzlenode:cheap-tourist-fast-tourist](http://www.puzzlenode.com/puzzles/2-cheap-tourist-fast-tourist):
+The algorithm I came up with constructs routes from sequences of flights and keeps only the best routes out of each city. Care must be taken to consider all routes; this requires keeping a flight around for consideration until all the incoming routes it might be added to have been computed.
+
+I have modeled each Flight with an object, with objects for a FlightQueue (to hold those flights still up for consideration) and BestFlights (to hold those routes--combinations of flights--that are optimal so far), as well as monkey patching some built-in Ruby classes for easy input and output.
+
+To fetch these files, make sure git is installed and at the command line type:
 
 ```
+$ git clone git@github.com:sandiegoscott/cheap-tourist-fast-tourist.git
+```
+
+To run the code against the sample data, make sure Ruby is installed, then type:
+
+```
+$ cd cheap-tourist-fast-tourist
 $ ruby tourist.rb sample-input.txt
 ```
 
