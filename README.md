@@ -8,6 +8,8 @@ The algorithm I came up with constructs routes from sequences of flights and kee
 
 I have modeled each Flight with an object, with objects for a FlightQueue (to hold those flights still up for consideration) and BestFlights (to hold those routes--combinations of flights--that are optimal so far), as well as monkey patching some built-in Ruby classes for easy input and output.
 
+The minimize_cost and minimize_time methods are very similar and could possibly be combined with a flag to decide which code to use where they differ. But that would complicate the code and get away from the purpose of the exercise.
+
 To fetch these files, make sure git is installed and at the command line type:
 
 ```
