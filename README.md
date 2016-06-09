@@ -28,7 +28,7 @@ You will see that I have added the duration of the trips and the id's of the cit
 To run against the large data sets provided:
 
 ```
-$ ruby tourist.rb input.txt
+$ ruby tourist.rb sample-input.txt
 
 09:00 13:30 200.0 | duration: 4:30 cities: A B Z
 10:00 12:00 300.0 | duration: 2:00 cities: A Z
@@ -37,6 +37,7 @@ $ ruby tourist.rb input.txt
 12:00 16:30 550.0 | duration: 4:30 cities: A B Z
 
 $ ruby tourist.rb input.txt
+
 06:00 22:07 1027.31 | duration: 16:07 cities: A C D Z
 06:00 17:07 1062.31 | duration: 11:07 cities: A C D Z
 
