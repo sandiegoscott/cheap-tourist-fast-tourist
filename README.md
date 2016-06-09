@@ -29,4 +29,20 @@ To run against the large data sets provided:
 
 ```
 $ ruby tourist.rb input.txt
+
+09:00 13:30 200.0 | duration: 4:30 cities: A B Z
+10:00 12:00 300.0 | duration: 2:00 cities: A Z
+
+08:00 19:00 225.0 | duration: 11:00 cities: A B C Z
+12:00 16:30 550.0 | duration: 4:30 cities: A B Z
+
+$ ruby tourist.rb input.txt
+06:00 22:07 1027.31 | duration: 16:07 cities: A C D Z
+06:00 17:07 1062.31 | duration: 11:07 cities: A C D Z
+
+00:00 20:34 1606.96 | duration: 20:34 cities: A F I G Z
+06:00 20:34 2283.35 | duration: 14:34 cities: A C F I G Z
+
+01:00 21:42 1549.21 | duration: 20:42 cities: A H Z
+09:00 19:42 1664.21 | duration: 10:42 cities: A C Z
 ```
